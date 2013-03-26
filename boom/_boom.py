@@ -88,20 +88,25 @@ def print_server_info(url, method, headers=None):
 
 
 def onecall(method, url, **options):
-    start = time.time()
 
     if 'data' in options and callable(options['data']):
         options = copy(options)
         options['data'] = options['data'](method, url, options)
 
-    res = method(url, **options)
+    if 'files' in options and callable(options['files']):
+        options['files'] = options['files'](method, url, options)
+
+    del options['headers']
+
+    start = time.time()
+    res = method(url,**options)
     _stats[res.status_code].append(time.time() - start)
     sys.stdout.write('=')
     sys.stdout.flush()
 
 
 def run(url, num=1, duration=None, method='GET', data=None, ct='text/plain',
-        auth=None, concurrency=1, headers=None):
+        auth=None, concurrency=1, files=None,headers=None):
 
     if headers is None:
         headers = {}
@@ -113,11 +118,18 @@ def run(url, num=1, duration=None, method='GET', data=None, ct='text/plain',
         callable = data[len('py:'):]
         data = resolve_name(callable)
 
+    if files is not None and files.startswith('py:'):
+        callable = files[len('py:'):]
+        files = resolve_name(callable)
+
     method = getattr(requests, method.lower())
     options = {'headers': headers}
 
     if data is not None:
         options['data'] = data
+
+    if files is not None:
+        options['files'] = files
 
     if auth is not None:
         options['auth'] = tuple(auth.split(':', 1))
@@ -154,7 +166,7 @@ def resolve(url):
     return urlparse.urlunparse(parts), original, resolved
 
 
-def load(url, requests, concurrency, duration, method, data, ct, auth,
+def load(url, requests, concurrency, duration, method, data, ct, auth,files,
          headers=None):
     clear_stats()
     print_server_info(url, method, headers=headers)
@@ -167,7 +179,7 @@ def load(url, requests, concurrency, duration, method, data, ct, auth,
     sys.stdout.write('Starting the load [')
     try:
         run(url, requests, duration, method, data, ct,
-            auth, concurrency, headers)
+            auth, concurrency,files, headers)
     finally:
         print('] Done')
 
@@ -206,6 +218,8 @@ def main():
     group.add_argument('-d', '--duration', help='Duration in seconds',
                        type=int)
 
+    parser.add_argument('-F','--files',help='Files. Prefixed by "py:" to point a python callable.',type=str)
+
     parser.add_argument('url', help='URL to hit', nargs='?')
     args = parser.parse_args()
 
@@ -222,6 +236,12 @@ def main():
         print("You can't provide data with %r" % args.method)
         parser.print_usage()
         sys.exit(0)
+
+    if args.files is not None and not args.method in _DATA_VERBS:
+        print("You can't provide files with %r" % args.method)
+        parser.print_usage()
+        sys.exit(0)
+
 
     if args.requests is None and args.duration is None:
         args.requests = 1
@@ -248,7 +268,7 @@ def main():
 
     try:
         load(url, args.requests, args.concurrency, args.duration,
-             args.method, args.data, args.content_type, args.auth,
+             args.method, args.data, args.content_type, args.auth,args.files,
              headers=headers)
     except KeyboardInterrupt:
         pass
