@@ -91,6 +91,7 @@ def print_server_info(url, method, headers=None):
 
 def onecall(method, url, **options):
 
+    start = time.time()
     if 'data' in options and callable(options['data']):
         options = copy(options)
         options['data'] = options['data'](method, url, options)
@@ -119,10 +120,6 @@ def run(url, num=1, duration=None, method='GET', data=None, ct='text/plain',
         callable = data[len('py:'):]
         data = resolve_name(callable)
 
-    if files is not None and files.startswith('py:'):
-        callable = files[len('py:'):]
-        files = resolve_name(callable)
-
     method = getattr(requests, method.lower())
     options = {'headers': headers}
 
@@ -131,9 +128,6 @@ def run(url, num=1, duration=None, method='GET', data=None, ct='text/plain',
 
     if data is not None:
         options['data'] = data
-
-    if files is not None:
-        options['files'] = files
 
     if auth is not None:
         options['auth'] = tuple(auth.split(':', 1))
@@ -184,6 +178,8 @@ def load(url, requests, concurrency, duration, method, data, ct, auth,
     try:
         run(url, requests, duration, method, data, ct,
             auth, concurrency, headers, hook)
+    except Exception,e:
+        print(e)
     finally:
         print('] Done')
 
