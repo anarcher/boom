@@ -1,6 +1,7 @@
 import logging
 import argparse
 import sys
+import os
 import time
 from collections import defaultdict
 import urlparse
@@ -18,6 +19,7 @@ import requests
 from boom import __version__, _patch     # NOQA
 from boom.util import resolve_name
 
+sys.path.insert(0,os.path.abspath("."))
 
 logger = logging.getLogger('boom')
 
@@ -205,7 +207,7 @@ def main():
     parser.add_argument('-H', '--header', help='Custom header. name:value',
                         type=str, action='append')
 
-    parser.add_argument('-H', '--hook',
+    parser.add_argument('--hook',
                         help=("Python callable that'll be used "
                               "on every requests call"),
                         type=str)
