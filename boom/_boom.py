@@ -223,8 +223,6 @@ def main():
     group.add_argument('-d', '--duration', help='Duration in seconds',
                        type=int)
 
-    parser.add_argument('-F','--files',help='Files. Prefixed by "py:" to point a python callable.',type=str)
-
     parser.add_argument('url', help='URL to hit', nargs='?')
     args = parser.parse_args()
 
@@ -241,12 +239,6 @@ def main():
         print("You can't provide data with %r" % args.method)
         parser.print_usage()
         sys.exit(0)
-
-    if args.files is not None and not args.method in _DATA_VERBS:
-        print("You can't provide files with %r" % args.method)
-        parser.print_usage()
-        sys.exit(0)
-
 
     if args.requests is None and args.duration is None:
         args.requests = 1
